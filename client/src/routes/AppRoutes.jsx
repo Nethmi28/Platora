@@ -108,13 +108,5 @@ export const appRoutes = [
       },
     ]
   },
-  {
-    path: "/Customerprofile/wallet",
-    component: CustomerWalletDashboard,
-    requiresAuth: true,
-    allowedRoles: ["customer"],
-  } 
-
-
 ]
 
