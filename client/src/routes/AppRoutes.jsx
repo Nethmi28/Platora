@@ -15,6 +15,7 @@ const RestaurantDashboard = lazy(() => import("../components/restaurantProfileCo
 const AdminDashboard = lazy(() => import("../components/adminProfileComponents/AdminDashboard"))
 const AdminProfile = lazy(() => import("../pages/AdminProfile"))
 const CustomerWalletDashboard = lazy(() => import("../pages/CustomerWalletDashboard"));
+const RestaurantWallet = lazy(() => import("../components/restaurantProfileComponents/RestaurantWallet"));
 
 export const appRoutes = [
   {
@@ -81,6 +82,10 @@ export const appRoutes = [
       {
         path: "",
         component: RestaurantDashboard,
+      },
+      {
+        path: "wallet",
+        component: RestaurantWallet, 
       },
     ]
   },
