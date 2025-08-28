@@ -19,6 +19,7 @@ const DeliveryAgentManagement = lazy(() => import("../components/adminProfileCom
 const DeliveryAgentDashboard = lazy(() => import("../pages/DeliveryAgentDashboard"));
 const CustomerReservation = lazy(() => import("../components/customerProfileComponents/CustomerReservation"))
 const kycrequests = lazy(() => import("../components/adminProfileComponents/AdminKycApproval"));
+const AuditLogs = lazy(() => import("../components/adminProfileComponents/AdminAuditLogs"));
 
 export const appRoutes = [
   {
@@ -120,6 +121,10 @@ export const appRoutes = [
         path: "kycrequests",
         component: kycrequests,
       },
+      {
+        path: "auditlogs",
+        component: AuditLogs,
+      }
     ]
   },
 
