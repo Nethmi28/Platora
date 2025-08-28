@@ -21,6 +21,11 @@ const CustomerReservation = lazy(() => import("../components/customerProfileComp
 const kycrequests = lazy(() => import("../components/adminProfileComponents/AdminKycApproval"));
 const RestaurantsDisplay = lazy(() => import("../pages/RestaurantsDisplay"));
 const RestaurantMenuList = lazy(() => import("../pages/RestaurantMenuList"));
+const ReservationList = lazy(() => import("../components/customerProfileComponents/ReservationList"));
+const TableAvailability = lazy(() => import("../components/customerProfileComponents/TableAvailability"));
+const Menu = lazy(() => import("../pages/MenuNew"));
+const AuditLogs = lazy(() => import("../components/adminProfileComponents/AdminAuditLogs"));
+
 
 export const appRoutes = [
   {
@@ -54,18 +59,21 @@ export const appRoutes = [
     requiresAuth: false,
     hideHeader: true
   },
+  
   {
     path: "*",
     component: NotFound,
     requiresAuth: false,
     hideHeader: true,
   },
+
   {
     path: "/",
     component: Home,
     requiresAuth: true,
     allowedRoles: ["customer", "guest"],
   },
+
   {
     path: "/customerprofile/*",
     component: CustomerProfile,
@@ -88,18 +96,21 @@ export const appRoutes = [
         path: "details",
         component: CustomerPersonalDetails,
       },
-      {
-        path: "reservation",
-        component: CustomerReservation,
+       {
+        path: "reservations",
+        component: ReservationList,
       },
+     
     ]
   },
+
   {
     path: "/redirect",
     component: RedirectPage,
     requiresAuth: false,
     hideHeader: true
   },
+
   {
     path: "/restaurant/*",
     component: RestaurantProfile,
@@ -114,8 +125,13 @@ export const appRoutes = [
         path: "wallet",
         component: RestaurantWallet, 
       },
+      {
+        path: "menu",
+        component: Menu, 
+      },
     ]
   },
+
    {
     path: "/admin/*",
     component: AdminProfile,
@@ -134,14 +150,25 @@ export const appRoutes = [
         path: "kycrequests",
         component: kycrequests,
       },
+      {
+        path: "auditlogs",
+        component: AuditLogs,
+      }
     ]
   },
 
    {
-    path: "/reservation",           // alias so /reservations works
+    path: "/reservations",           
     component: CustomerReservation,
     requiresAuth: true,
-    allowedRoles: ["customer"],      // include "guest" if you want guests to access
+    allowedRoles: ["customer"],      
+  },
+
+    {
+    path: "/tables",
+    component: TableAvailability,
+    requiresAuth: true,
+    allowedRoles: ["customer"],
   },
 
 ]
