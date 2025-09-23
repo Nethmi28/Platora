@@ -13,6 +13,9 @@ import auditRoutes from './routes/auditRoutes.js';
 import restaurantsListRoutes from './routes/restaurantsListRoutes.js'
 import menuListRoutes from './routes/menuListRoutes.js'
 import categoryRoutes from './routes/categoriesRoutes.js'
+import foodCourtRoutes from "./routes/foodCourtRoutes.js";
+import availabilityRoutes from "./routes/availabilityRoutes.js";
+import adminAvailabilityRoutes from "./routes/adminAvailabilityRoutes.js";
 
 const app = express();
 const port = 3000;
@@ -47,6 +50,10 @@ app.use('/api/restaurant/kyc', kycRoutes);
 
 app.use('/api/audit', auditRoutes);
 
+app.use("/api/food-court", foodCourtRoutes);
+
+app.use("/api/reservations/availability", availabilityRoutes);  // public
+app.use("/api/admin/availability", adminAvailabilityRoutes);    // admin
 
 app.listen(port, () => {
     console.log(`Server running on port ${3000}`);

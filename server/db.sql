@@ -159,3 +159,40 @@ create table menu_items (
   is_active boolean default true,
   created_at timestamptz default now()
 );
+
+-- food_court_table Table
+CREATE TABLE IF NOT EXISTS food_court_table (
+  id          SERIAL PRIMARY KEY,
+  table_code  TEXT UNIQUE NOT NULL,
+  capacity    INTEGER NOT NULL,
+  price       NUMERIC(10,2) DEFAULT 0,
+  pos_x       INTEGER DEFAULT 40,
+  pos_y       INTEGER DEFAULT 40,
+  active      BOOLEAN DEFAULT TRUE,
+  created_at  TIMESTAMP DEFAULT NOW(),
+  updated_at  TIMESTAMP DEFAULT NOW()
+);
+
+-- Time slots master
+CREATE TABLE IF NOT EXISTS reservation_time_slots (
+  id       SERIAL PRIMARY KEY,
+  label    TEXT NOT NULL UNIQUE,   -- e.g. '10:00 AM - 12:00 PM'
+  sort_idx INTEGER NOT NULL DEFAULT 0
+);
+
+-- Blackout header: either full day or some slots
+CREATE TABLE IF NOT EXISTS reservation_blackouts (
+  id         SERIAL PRIMARY KEY,
+  date       DATE NOT NULL UNIQUE,     -- one row per date (unique so we can upsert)
+  full_day   BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Blacked-out slots for partial-day blackouts
+CREATE TABLE IF NOT EXISTS reservation_blackout_slots (
+  id           SERIAL PRIMARY KEY,
+  blackout_id  INTEGER NOT NULL REFERENCES reservation_blackouts(id) ON DELETE CASCADE,
+  slot_id      INTEGER NOT NULL REFERENCES reservation_time_slots(id) ON DELETE CASCADE,
+  CONSTRAINT reservation_blackout_slots_unique UNIQUE (blackout_id, slot_id)
+);
+
