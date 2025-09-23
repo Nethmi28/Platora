@@ -2,6 +2,12 @@ import pool from "../config/db.js";
 import * as WalletModel from "../models/walletModel.js";
 import * as TransactionModel from "../models/transactionModel.js";
 import * as WalletService from "../services/walletService.js";
+import * as RestaurantEarningsModel from '../models/restaurantEarningsModel.js';
+import { 
+  sendPurchaseConfirmation, 
+  sendTransactionReceipt, 
+  sendLowBalanceAlert 
+} from '../services/emailService.js';
 import bcrypt from 'bcrypt';
 
 // Get wallet information
@@ -907,6 +913,49 @@ export const processSuccessfulPayment = async (req, res) => {
 
     if (result.success) {
       await client.query('COMMIT');
+      
+      // Get user info and wallet balance for email
+      const userQuery = await client.query(
+        'SELECT first_name, last_name, email FROM users WHERE id = $1',
+        [userId]
+      );
+      const user = userQuery.rows[0];
+      
+      const wallet = await WalletModel.getWalletByUserId(userId);
+      
+      // Get payment intent details for currency info
+      const piQuery = await client.query(
+        'SELECT currency, amount_money FROM payment_intents WHERE stripe_payment_intent_id = $1',
+        [paymentIntentId]
+      );
+      const paymentIntent = piQuery.rows[0];
+      
+      // Currency symbols mapping
+      const currencySymbols = {
+        'USD': '$',
+        'GBP': '£',
+        'EUR': '€',
+        'AUD': 'A$',
+        'JPY': '¥'
+      };
+      
+      // Send confirmation email (fire and forget)
+      sendPurchaseConfirmation(
+        { 
+          email: user.email, 
+          firstName: user.first_name 
+        },
+        {
+          coins: result.coinsAdded,
+          amount: paymentIntent.amount_money,
+          currency: paymentIntent.currency.toUpperCase(),
+          currencySymbol: currencySymbols[paymentIntent.currency.toUpperCase()] || '',
+          id: result.transaction.id,
+          date: new Date(),
+          newBalance: wallet.balance_coins
+        }
+      ).catch(err => console.error('Email error:', err));
+      
       res.json({
         success: true,
         message: result.message,
@@ -972,7 +1021,9 @@ export const spendCoins = async (req, res) => {
     const { 
       coins, 
       description, 
-      orderId, 
+      orderId,
+      reservationId,
+      restaurantId,
       category = 'Food Orders',
       requirePin = true
     } = req.body;
@@ -981,6 +1032,13 @@ export const spendCoins = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Invalid coin amount'
+      });
+    }
+
+    if (!restaurantId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Restaurant ID is required'
       });
     }
 
@@ -1022,6 +1080,12 @@ export const spendCoins = async (req, res) => {
       });
     }
 
+    // Calculate commission (5% to platform, 95% to restaurant)
+    const commissionPercentage = 5;
+    const commissionCoins = Math.floor(coins * (commissionPercentage / 100));
+    const restaurantCoins = coins - commissionCoins;
+
+    // Create customer transaction
     const transactionData = {
       userId,
       transactionType: 'SPEND',
@@ -1029,33 +1093,112 @@ export const spendCoins = async (req, res) => {
       amountMoney: 0,
       currency: 'LKR',
       description: description || `Purchase - ${category}`,
-      referenceId: orderId,
+      referenceId: orderId || reservationId,
       status: 'COMPLETED',
       paymentMethod: 'coins',
       metadata: {
         category,
         order_id: orderId,
+        reservation_id: reservationId,
+        restaurant_id: restaurantId,
+        commission_coins: commissionCoins,
+        restaurant_coins: restaurantCoins,
         ip_address: req.ip,
         user_agent: req.get('User-Agent')
       }
     };
 
     const transaction = await TransactionModel.createTransaction(transactionData, client);
+    
+    // Update customer wallet balance
     await WalletModel.updateBalance(userId, -coins, 0, client);
+
+    // Record restaurant earnings
+    const earningData = {
+      restaurantId,
+      transactionId: transaction.id,
+      orderId,
+      reservationId,
+      grossCoins: coins,
+      commissionCoins,
+      netCoins: restaurantCoins
+    };
+    
+    await RestaurantEarningsModel.createEarning(earningData, client);
+
+    // Record platform commission
+    const commissionData = {
+      transactionId: transaction.id,
+      restaurantId,
+      commissionCoins,
+      commissionPercentage
+    };
+    
+    await RestaurantEarningsModel.createCommission(commissionData, client);
 
     // Log spending event
     await WalletModel.logSecurityEvent(userId, 'COINS_SPENT', {
       amount: coins,
       category,
-      orderId
+      orderId,
+      restaurantId,
+      commission: commissionCoins
     }, client);
 
     await client.query('COMMIT');
+    
+    // Get user and restaurant info for email
+    const userQuery = await client.query(
+      'SELECT first_name, email FROM users WHERE id = $1',
+      [userId]
+    );
+    const user = userQuery.rows[0];
+    
+    const restaurantQuery = await client.query(
+      'SELECT name FROM restaurant_profiles WHERE id = $1',
+      [restaurantId]
+    );
+    const restaurant = restaurantQuery.rows[0];
+    
+    // Get updated wallet balance
+    const wallet = await WalletModel.getWalletByUserId(userId);
+    
+    // Send transaction receipt (fire and forget)
+    sendTransactionReceipt(
+      {
+        email: user.email,
+        firstName: user.first_name
+      },
+      {
+        coinsSpent: coins,
+        restaurantName: restaurant?.name || 'Restaurant',
+        orderId: orderId,
+        id: transaction.id,
+        date: new Date(),
+        remainingBalance: wallet.balance_coins
+      }
+    ).catch(err => console.error('Email error:', err));
+    
+    // Check if balance is low (less than 50 coins) and send alert
+    if (wallet.balance < 50 && wallet.balance > 0) {
+      sendLowBalanceAlert(
+        {
+          email: user.email,
+          firstName: user.first_name
+        },
+        wallet.balance
+      ).catch(err => console.error('Email error:', err));
+    }
 
     res.json({
       success: true,
       message: `Successfully spent ${coins} coins`,
-      transaction
+      transaction: {
+        id: transaction.id,
+        coins_spent: coins,
+        restaurant_receives: restaurantCoins,
+        platform_commission: commissionCoins
+      }
     });
 
   } catch (error) {
@@ -1665,5 +1808,148 @@ export const resetWalletPin = async (req, res) => {
     });
   } finally {
     client.release();
+  }
+};
+
+// Restaurant Earnings - Get dashboard overview
+export const getRestaurantEarnings = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get restaurant profile ID from user
+    const restaurantQuery = await pool.query(
+      'SELECT id, name FROM restaurant_profiles WHERE user_id = $1',
+      [userId]
+    );
+    
+    if (restaurantQuery.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Restaurant profile not found'
+      });
+    }
+    
+    const restaurant = restaurantQuery.rows[0];
+    
+    // Get dashboard stats
+    const stats = await RestaurantEarningsModel.getRestaurantDashboardStats(restaurant.id);
+    
+    // Get pending earnings details
+    const pendingEarnings = await RestaurantEarningsModel.getPendingEarnings(restaurant.id);
+    
+    res.json({
+      success: true,
+      restaurant: {
+        id: restaurant.id,
+        name: restaurant.name
+      },
+      stats: {
+        pending: {
+          count: parseInt(stats.pending_count) || 0,
+          coins: parseInt(stats.pending_coins) || 0,
+          lkr: parseFloat(stats.pending_lkr) || 0
+        },
+        paid: {
+          count: parseInt(stats.paid_count) || 0,
+          coins: parseInt(stats.total_earned_coins) || 0,
+          lkr: parseFloat(stats.total_earned_lkr) || 0
+        },
+        total: {
+          transactions: parseInt(stats.total_transactions) || 0,
+          grossCoins: parseInt(stats.total_gross_coins) || 0,
+          commissionCoins: parseInt(stats.total_commission_coins) || 0
+        }
+      },
+      pendingEarnings
+    });
+    
+  } catch (error) {
+    console.error('Error getting restaurant earnings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get earnings',
+      error: error.message
+    });
+  }
+};
+
+// Restaurant Earnings - Get monthly summary
+export const getRestaurantMonthlySummary = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { year } = req.query;
+    
+    const restaurantQuery = await pool.query(
+      'SELECT id FROM restaurant_profiles WHERE user_id = $1',
+      [userId]
+    );
+    
+    if (restaurantQuery.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Restaurant profile not found'
+      });
+    }
+    
+    const restaurantId = restaurantQuery.rows[0].id;
+    const currentYear = year || new Date().getFullYear();
+    
+    const monthlyData = await RestaurantEarningsModel.getEarningsByMonth(restaurantId, currentYear);
+    
+    res.json({
+      success: true,
+      year: currentYear,
+      monthlyData
+    });
+    
+  } catch (error) {
+    console.error('Error getting monthly summary:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get monthly summary',
+      error: error.message
+    });
+  }
+};
+
+// Restaurant Earnings - Get history with filters
+export const getRestaurantEarningsHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { startDate, endDate, status } = req.query;
+    
+    const restaurantQuery = await pool.query(
+      'SELECT id FROM restaurant_profiles WHERE user_id = $1',
+      [userId]
+    );
+    
+    if (restaurantQuery.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Restaurant profile not found'
+      });
+    }
+    
+    const restaurantId = restaurantQuery.rows[0].id;
+    
+    const history = await RestaurantEarningsModel.getEarningsHistory(
+      restaurantId,
+      startDate,
+      endDate,
+      status
+    );
+    
+    res.json({
+      success: true,
+      history
+    });
+    
+  } catch (error) {
+    console.error('Error getting earnings history:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get earnings history',
+      error: error.message
+    });
   }
 };

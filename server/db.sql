@@ -942,4 +942,56 @@ FOR EACH ROW
 EXECUTE FUNCTION update_transactions_updated_at();
 
 ALTER TABLE transactions ADD COLUMN processed_at TIMESTAMP;
+
+-- 1. First create payout_history (no dependencies on other new tables)
+CREATE TABLE payout_history (
+  id SERIAL PRIMARY KEY,
+  restaurant_id INTEGER NOT NULL REFERENCES restaurant_profiles(id),
+  period_month INTEGER NOT NULL,
+  period_year INTEGER NOT NULL,
+  total_coins INTEGER NOT NULL,
+  amount_lkr DECIMAL(12,2) NOT NULL,
+  bank_account VARCHAR(100),
+  bank_name VARCHAR(100),
+  payout_date TIMESTAMP,
+  proof_url TEXT,
+  processed_by INTEGER REFERENCES users(id),
+  status VARCHAR(20) DEFAULT 'pending',
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 2. Then create restaurant_earnings (references payout_history)
+CREATE TABLE restaurant_earnings (
+  id SERIAL PRIMARY KEY,
+  restaurant_id INTEGER NOT NULL REFERENCES restaurant_profiles(id),
+  transaction_id INTEGER NOT NULL REFERENCES transactions(id),
+  order_id INTEGER,
+  reservation_id INTEGER,
+  gross_coins INTEGER NOT NULL,
+  commission_coins INTEGER NOT NULL,
+  net_coins INTEGER NOT NULL,
+  payout_status VARCHAR(20) DEFAULT 'pending',
+  payout_id INTEGER REFERENCES payout_history(id),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 3. Finally create platform_revenue
+CREATE TABLE platform_revenue (
+  id SERIAL PRIMARY KEY,
+  transaction_id INTEGER NOT NULL REFERENCES transactions(id),
+  restaurant_id INTEGER NOT NULL REFERENCES restaurant_profiles(id),
+  commission_coins INTEGER NOT NULL,
+  commission_percentage DECIMAL(5,2) DEFAULT 5.00,
+  settled BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 4. Add indexes for performance
+CREATE INDEX idx_restaurant_earnings_restaurant ON restaurant_earnings(restaurant_id);
+CREATE INDEX idx_restaurant_earnings_payout_status ON restaurant_earnings(payout_status);
+CREATE INDEX idx_platform_revenue_restaurant ON platform_revenue(restaurant_id);
+CREATE INDEX idx_payout_history_restaurant ON payout_history(restaurant_id);
+CREATE INDEX idx_payout_history_period ON payout_history(period_year, period_month);
 -------------------------------------------------------------------------------------------------------    
