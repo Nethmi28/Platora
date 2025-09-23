@@ -62,7 +62,7 @@ app.use('/api/wallet', (req, res, next) => {
 app.use('/api/wallet', walletRoutes);
 
 
-cron.schedule('0 */1 * * *', async () => {
+cron.schedule('0 * * * *', async () => {
   console.log('Auto-updating exchange rates from Alpha Vantage...');
   try {
     const result = await WalletService.updateExchangeRates();
@@ -72,7 +72,7 @@ cron.schedule('0 */1 * * *', async () => {
   }
 });
 
-console.log('Exchange rate auto-updater scheduled (every 4 hours)');
+console.log('Exchange rate auto-updater scheduled (every hour)');
 
 app.use((req, res) => {
   console.log('404 - Route not found:', req.originalUrl);

@@ -22,7 +22,10 @@ import {
   changeWalletPin,
   resetWalletPin,
   unlockWallet,
-  getPinSecurityReport
+  getPinSecurityReport,
+  getRestaurantEarnings,
+  getRestaurantMonthlySummary,
+  getRestaurantEarningsHistory
 } from "../controllers/walletController.js";
 import {
   validateSpend,
@@ -43,6 +46,12 @@ import {
   paymentLimiter,
   spendingLimiter
 } from "../middleware/walletValidation.js";
+import {
+  getAdminPendingPayouts,
+  processRestaurantPayout,
+  getPayoutHistory,
+  getPlatformRevenueAnalytics
+} from '../controllers/adminPayoutController.js';
 import verifyJWT from "../middleware/verifyToken.js";
 import checkRole from "../middleware/requireRole.js";
 
@@ -421,5 +430,16 @@ router.post("/admin/cleanup",
     }
   }
 );
+
+// Restaurant earnings routes
+router.get('/restaurant/earnings', verifyJWT, getRestaurantEarnings);
+router.get('/restaurant/monthly-summary', verifyJWT, getRestaurantMonthlySummary);
+router.get('/restaurant/history', verifyJWT, getRestaurantEarningsHistory);
+
+// Admin payout routes
+router.get('/admin/pending-payouts', verifyJWT, checkRole(['admin']), getAdminPendingPayouts);
+router.post('/admin/process-payout', verifyJWT, checkRole(['admin']), processRestaurantPayout);
+router.get('/admin/payout-history', verifyJWT, checkRole(['admin']), getPayoutHistory);
+router.get('/admin/platform-revenue', verifyJWT, checkRole(['admin']), getPlatformRevenueAnalytics);
 
 export default router;
