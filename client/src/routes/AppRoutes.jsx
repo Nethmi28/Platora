@@ -25,6 +25,9 @@ const ReservationList = lazy(() => import("../components/customerProfileComponen
 const TableAvailability = lazy(() => import("../components/customerProfileComponents/TableAvailability"));
 const Menu = lazy(() => import("../components/restaurantProfileComponents/RestaurantOperations"));
 const AuditLogs = lazy(() => import("../components/adminProfileComponents/AdminAuditLogs"));
+const AdminFoodCourt = lazy(() => import("../components/adminProfileComponents/AdminFoodCourt"));
+const CustomerWallet = lazy(() => import("../components/customerProfileComponents/CustomerWalletDashboard"));
+
 
 
 export const appRoutes = [
@@ -100,6 +103,10 @@ export const appRoutes = [
         path: "reservations",
         component: ReservationList,
       },
+      {
+        path: "wallet",
+        component: CustomerWallet, 
+      },
      
     ]
   },
@@ -153,7 +160,13 @@ export const appRoutes = [
       {
         path: "auditlogs",
         component: AuditLogs,
-      }
+      },
+      {
+        path: "reservations/food-court",
+        component: AdminFoodCourt 
+      },
+      
+
     ]
   },
 
