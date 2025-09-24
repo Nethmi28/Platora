@@ -13,9 +13,13 @@ import auditRoutes from './routes/auditRoutes.js';
 import restaurantsListRoutes from './routes/restaurantsListRoutes.js'
 import menuListRoutes from './routes/menuListRoutes.js'
 import categoryRoutes from './routes/categoriesRoutes.js'
+import foodCourtRoutes from "./routes/foodCourtRoutes.js";
+import availabilityRoutes from "./routes/availabilityRoutes.js";
+import adminAvailabilityRoutes from "./routes/adminAvailabilityRoutes.js";
 import walletRoutes from './routes/walletRoutes.js';
 import cron from 'node-cron';
 import * as WalletService from './services/walletService.js';
+
 
 const app = express();
 const port = 3000;
@@ -48,6 +52,11 @@ app.use('/restaurants/menuCategories', categoryRoutes);
 
 app.use('/api/restaurant/kyc', kycRoutes);
 app.use('/api/audit', auditRoutes);
+
+app.use("/api/food-court", foodCourtRoutes);
+
+app.use("/api/reservations/availability", availabilityRoutes);  // public
+app.use("/api/admin/availability", adminAvailabilityRoutes);    // admin
 
 app.use('/api/wallet', (req, res, next) => {
   console.log('=== WALLET ROUTE HIT ===');
@@ -82,6 +91,7 @@ app.use((req, res) => {
     path: req.originalUrl
   });
 });
+
 
 app.listen(port, () => {
     console.log(`Server running on port ${3000}`);
