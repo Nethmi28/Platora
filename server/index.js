@@ -22,7 +22,7 @@ import adminAvailabilityRoutes from "./routes/adminAvailabilityRoutes.js";
 import walletRoutes from './routes/walletRoutes.js';
 import cron from 'node-cron';
 import * as WalletService from './services/walletService.js';
-
+import recipeRoutes from './routes/recipeRoutes.js';
 
 
 const app = express();
@@ -57,6 +57,7 @@ app.use('/restaurants/menu', menuListRoutes);
 app.use('/restaurants/menuCategories', categoryRoutes);
 app.use('/restaurants/inventory', inventoryRoutes);
 app.use('/restaurants/menuItems', menuRoutes);
+app.use('/api/recipes', recipeRoutes);
 
 app.use('/api/restaurant/kyc', kycRoutes);
 app.use('/api/audit', auditRoutes);
