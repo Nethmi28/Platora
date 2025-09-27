@@ -15,6 +15,7 @@ import menuListRoutes from './routes/menuListRoutes.js'
 import categoryRoutes from './routes/categoriesRoutes.js'
 import plateRoutes from './routes/plateRoutes.js'
 import cartCountRoutes from "./routes/cartCountRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
 
 const app = express();
 const port = 3000;
@@ -46,6 +47,8 @@ app.use('/restaurants/menu', menuListRoutes);
 app.use('/restaurants/menuCategories', categoryRoutes);
 app.use('/api/carts', plateRoutes);
 app.use('/api/carts/count', cartCountRoutes);
+app.use('/api/orders', orderRoutes);
+
 
 app.use('/api/restaurant/kyc', kycRoutes);
 

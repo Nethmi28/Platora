@@ -27,6 +27,7 @@ const Menu = lazy(() => import("../components/restaurantProfileComponents/Restau
 const AuditLogs = lazy(() => import("../components/adminProfileComponents/AdminAuditLogs"));
 const Plate = lazy(() => import("../pages/Plate"));
 const CustomerOrders = lazy(() => import("../components/customerProfileComponents/CustomerOrders"))
+const RestaurantOrders = lazy(() => import("../components/restaurantProfileComponents/RestaurantOrders"))
 
 
 export const appRoutes = [
@@ -137,6 +138,10 @@ export const appRoutes = [
       {
         path: "wallet",
         component: RestaurantWallet, 
+      },
+      {
+        path: "orders",
+        component: RestaurantOrders, 
       },
       {
         path: "menu",

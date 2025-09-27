@@ -10,6 +10,7 @@ function CartPage() {
   const [orderType, setOrderType] = useState("pickup");
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchCart = async () => {
@@ -19,6 +20,35 @@ function CartPage() {
     };
     fetchCart();
   }, []);
+
+  //inventory check
+  const [checking, setChecking] = useState(false);
+
+  const [canProceed, setCanProceed] = useState(false);
+
+  const handleCheckout = async () => {
+    setChecking(true);
+    try {
+      const res = await axiosInstance.post("/api/orders/inventoryCheck");
+      console.log("Inventory check response:", res.data);
+      const { shortages } = res.data;
+
+      if (shortages && shortages.length > 0) {
+        setError(shortages);
+        setCanProceed(false); // not enough stock
+        return;
+      } else {
+        console.log("All items are available!");
+        setCanProceed(true); // allow proceeding
+      }
+    } catch (err) {
+      console.error("Error checking inventory:", err);
+      console.log("Failed to check availability. Try again.");
+      setCanProceed(false);
+    } finally {
+      setChecking(false);
+    }
+  };
 
   // Remove item
   const removeItem = async (id) => {
@@ -105,6 +135,51 @@ function CartPage() {
           <ShoppingCart className="w-10 md:w-16 h-10 md:h-16 text-emerald-500" />
           Your Cart
         </motion.h2>
+
+        {error && (
+          <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-5 shadow-lg transition duration-300">
+            <div className="flex items-start">
+              {/* Alert Icon */}
+              <svg className="w-6 h-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              
+              <div className="text-red-700 dark:text-red-400 flex-1">
+                {Array.isArray(error) ? (
+                  <>
+                    {/* Structured List for Shortages (fixes the newline issue) */}
+                    <p className="font-extrabold text-red-800 dark:text-red-200 mb-2 text-lg">
+                       Shortages Detected
+                    </p>
+                    <ul className="list-disc list-inside ml-2 space-y-2 text-sm">
+                      {error.map((s, i) => (
+                        <li key={i} className="text-red-700 dark:text-red-300">
+                          <span className="font-semibold text-red-800 dark:text-white">{s.menu_name}</span>: ordered {s.ordered}, but we can only make {s.canMake}.
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-4 text-red-600 dark:text-red-400 font-medium border-t border-red-700/30 pt-3">
+                      Please adjust your cart items and re-check availability.
+                    </p>
+                  </>
+                ) : (
+                  // Simple text display for general API errors
+                  <p>{error}</p>
+                )}
+              </div>
+              
+              {/* Close Button */}
+              <button
+                onClick={() => setError(null)}
+                className="ml-4 text-red-500 hover:text-red-700 flex-shrink-0 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
 
         {cartItems.length === 0 ? (
           <div className="text-center text-gray-600 dark:text-gray-300">
@@ -273,12 +348,27 @@ function CartPage() {
               )}
 
               {/* Checkout Button */}
-              <Link
-                to="/checkout"
-                className="w-full bg-emerald-500 text-white font-bold py-3 px-4 rounded-3xl flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all duration-300 transform hover:scale-105"
-              >
-                Proceed to Checkout <ArrowRight size={18} />
-              </Link>
+              {!canProceed ? (
+                <button
+                  onClick={handleCheckout}
+                  disabled={checking}
+                  className="w-full bg-emerald-600 text-white font-bold py-3 px-4 rounded-3xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all duration-300 transform hover:scale-105"
+                >
+                  {checking ? "Checking…" : "Check Availability"}
+                </button>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-center text-emerald-500 font-semibold">
+                    Inventory confirmed! Click Checkout to proceed.
+                  </p>
+                  <button
+                    onClick={() => alert("Proceeding to payment...")} // replace with real payment call
+                    className="w-full bg-emerald-500 text-white font-bold py-3 px-4 rounded-3xl flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all duration-300 transform hover:scale-105"
+                  >
+                    Checkout
+                  </button>
+                </div>
+              )}
             </motion.div>
           </div>
         )}
@@ -287,4 +377,4 @@ function CartPage() {
   );
 }
 
-export default CartPage;
+export default CartPage;   
