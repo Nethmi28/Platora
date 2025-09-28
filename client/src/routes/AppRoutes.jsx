@@ -30,8 +30,7 @@ const CustomerWallet = lazy(() => import("../components/customerProfileComponent
 const Plate = lazy(() => import("../pages/Plate"));
 const CustomerOrders = lazy(() => import("../components/customerProfileComponents/CustomerOrders"))
 const RestaurantDetails = lazy(() => import("../components/restaurantProfileComponents/RestaurantDetails"))
-
-
+const AboutUs = lazy(() => import("../components/AboutUs"))
 
 
 
@@ -41,6 +40,11 @@ export const appRoutes = [
     component: LoginPage,
     requiresAuth: false,
     hideHeader: true
+  },
+  {
+    path: "/about",
+    component: AboutUs,
+    requiresAuth: false,
   },
    
   {

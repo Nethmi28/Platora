@@ -33,6 +33,12 @@ function MenuPage() {
         fetchMenu();
     }, [id]);
 
+    
+    const lkrToCoins = (lkr) => {
+      const exchangeRate = 50;
+      return lkr/exchangeRate;
+    }
+
     const addToCart = async (menuItemId) => {
         try {
             await axiosInstance.post("/api/carts/add", { menuItemId, quantity: 1 });
@@ -91,7 +97,7 @@ function MenuPage() {
                                         {item.description}
                                     </p>
                                     <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 mb-4">
-                                        LKR {item.price}
+                                         {lkrToCoins(item.price)} Coins
                                     </p>
                                     <button
                                         onClick={() => addToCart(item.id)}

@@ -224,7 +224,7 @@ const ImageUploader = ({ value, onChange, onRemove, disabled = false }) => {
   );
 };
 
-// ----- MenuItemModal (unchanged except uses new uploader) -----
+// ----- MenuItemModal (Modified for price input) -----
 const MenuItemModal = ({ open, onClose, initial, onSubmit, categories }) => {
   const [form, setForm] = useState(() =>
     initial || { name: "", description: "", price: "", image_url: "", image_file: null, is_active: true, category_id: "" }
@@ -237,7 +237,6 @@ const MenuItemModal = ({ open, onClose, initial, onSubmit, categories }) => {
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const handleImageUpload = (imageData) => {
-    // imageData.preview will be objectURL first, then base64 later (if generated)
     setForm(f => ({
       ...f,
       image_file: imageData,
@@ -253,6 +252,23 @@ const MenuItemModal = ({ open, onClose, initial, onSubmit, categories }) => {
     }));
   };
 
+  const handlePriceChange = (e) => {
+    const value = e.target.value;
+    // Allow only numeric input (integers)
+    if (value === '' || /^[0-9]+$/.test(value)) {
+      set("price", value);
+    }
+  };
+
+  const handlePriceBlur = (e) => {
+    const value = Number(e.target.value);
+    if (!isNaN(value) && value > 0) {
+      // Round to the nearest multiple of 50
+      const roundedValue = Math.round(value / 50) * 50;
+      set("price", roundedValue.toString());
+    }
+  };
+
   const handleSubmit = () => {
     const payload = {
       ...form,
@@ -264,98 +280,100 @@ const MenuItemModal = ({ open, onClose, initial, onSubmit, categories }) => {
   };
 
   return (
-    <Modal  className="mt-5"
-  open={open}
-  onClose={onClose}
-  title={initial ? "Edit Menu Item" : "New Menu Item"}
-  footer={
-    <div className="flex justify-end gap-2 ">
-      <Button variant="secondary" onClick={onClose}>Cancel</Button>
-      <Button onClick={handleSubmit}><Save className="w-4 h-4" /> Save</Button>
-    </div>
-  }
->
-  <div
-    className="
-      grid grid-cols-12 gap-4
-      max-w-2xl mx-auto  
-      max-h-[50vh]        
-      overflow-y-auto    
-      p-2  
-                  
-    "
-  >
-    {/* Name */}
-    <div className="col-span-12">
-      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Name</label>
-      <Input
-        value={form.name}
-        onChange={(e) => set("name", e.target.value)}
-        placeholder="Enter item name"
-      />
-    </div>
+    <Modal
+      className="mt-5"
+      open={open}
+      onClose={onClose}
+      title={initial ? "Edit Menu Item" : "New Menu Item"}
+      footer={
+        <div className="flex justify-end gap-2 ">
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSubmit}><Save className="w-4 h-4" /> Save</Button>
+        </div>
+      }
+    >
+      <div
+        className="
+          grid grid-cols-12 gap-4
+          max-w-2xl mx-auto  
+          max-h-[50vh]          
+          overflow-y-auto      
+          p-2                  
+        "
+      >
+        {/* Name */}
+        <div className="col-span-12">
+          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Name</label>
+          <Input
+            value={form.name}
+            onChange={(e) => set("name", e.target.value)}
+            placeholder="Enter item name"
+          />
+        </div>
 
-    {/* Description */}
-    <div className="col-span-12">
-      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Description</label>
-      <Input
-        value={form.description}
-        onChange={(e) => set("description", e.target.value)}
-        placeholder="Enter description"
-      />
-    </div>
+        {/* Description */}
+        <div className="col-span-12">
+          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Description</label>
+          <Input
+            value={form.description}
+            onChange={(e) => set("description", e.target.value)}
+            placeholder="Enter description"
+          />
+        </div>
 
-    {/* Price */}
-    <div className="col-span-6">
-      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Price (LKR)</label>
-      <Input
-        value={form.price}
-        onChange={(e) => set("price", e.target.value)}
-        placeholder="0.00"
-      />
-    </div>
+        {/* Price (MODIFIED) */}
+        <div className="col-span-6">
+          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Price (LKR)</label>
+          <Input
+            type="text" // Use text to allow custom handling, but pattern enforces numeric
+            pattern="[0-9]*"
+            value={form.price}
+            onChange={handlePriceChange}
+            onBlur={handlePriceBlur}
+            placeholder="e.g., 500"
+          />
+        </div>
 
-    {/* Category */}
-    <div className="col-span-6">
-      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Category</label>
-      <Select value={form.category_id} onChange={(e) => set("category_id", e.target.value)}>
-        <option value="">Select category</option>
-        {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-      </Select>
-    </div>
+        {/* Category */}
+        <div className="col-span-6">
+          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Category</label>
+          <Select value={form.category_id} onChange={(e) => set("category_id", e.target.value)}>
+            <option value="">Select category</option>
+            {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+          </Select>
+        </div>
 
-    {/* Image Upload */}
-    <div className="col-span-12">
-      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">Image</label>
-      <ImageUploader
-        value={form.image_url}
-        onChange={handleImageUpload}
-        onRemove={handleImageRemove}
-      />
-    </div>
+        {/* Image Upload */}
+        <div className="col-span-12">
+          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">Image</label>
+          <ImageUploader
+            value={form.image_url}
+            onChange={handleImageUpload}
+            onRemove={handleImageRemove}
+          />
+        </div>
 
-    {/* Image URL */}
-    <div className="col-span-12">
-      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Or Image URL</label>
-      <Input
-        value={form.image_file ? '' : form.image_url}
-        onChange={(e) => set("image_url", e.target.value)}
-        placeholder="https://..."
-        disabled={!!form.image_file}
-      />
-      {form.image_file && (<p className="text-xs text-gray-500 mt-1">Remove uploaded image to use URL instead</p>)}
-    </div>
+        {/* Image URL */}
+        <div className="col-span-12">
+          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Or Image URL</label>
+          <Input
+            value={form.image_file ? '' : form.image_url}
+            onChange={(e) => set("image_url", e.target.value)}
+            placeholder="https://..."
+            disabled={!!form.image_file}
+          />
+          {form.image_file && (<p className="text-xs text-gray-500 mt-1">Remove uploaded image to use URL instead</p>)}
+        </div>
 
-    {/* Active */}
-    <div className="col-span-12">
-      <label className="inline-flex items-center gap-2">
-        <input type="checkbox" checked={form.is_active} onChange={(e) => set("is_active", e.target.checked)} />
-        <span className="text-sm text-gray-700 dark:text-gray-300">Active</span>
-      </label>
-    </div>
-  </div>
-</Modal>
-
+        {/* Active */}
+        <div className="col-span-12">
+          <label className="inline-flex items-center gap-2">
+            <input type="checkbox" checked={form.is_active} onChange={(e) => set("is_active", e.target.checked)} />
+            <span className="text-sm text-gray-700 dark:text-gray-300">Active</span>
+          </label>
+        </div>
+      </div>
+    </Modal>
   );
 };
 
@@ -410,9 +428,30 @@ const MenuManager = ({ menu = [], categories = [], onCreate, onUpdate, onDelete 
           </Select>
         </div>
         <Button onClick={openCreate}><Plus className="w-4 h-4" /> New Item</Button>
+        
       </Toolbar>
 
-      
+      <div className="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+  <div className="flex items-center">
+    <svg
+      className="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    </svg>
+    <p className="text-yellow-700 dark:text-yellow-400 flex-1">
+      Menu item prices must be set in multiples of 50.
+    </p>
+  </div>
+</div>
+
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((m) => (
