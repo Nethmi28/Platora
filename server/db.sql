@@ -977,7 +977,7 @@ CREATE TABLE IF NOT EXISTS food_court_table (
   id          SERIAL PRIMARY KEY,
   table_code  TEXT UNIQUE NOT NULL,
   capacity    INTEGER NOT NULL,
-  price       NUMERIC(10,2) DEFAULT 0,
+  price      INTEGER NOT NULL,
   pos_x       INTEGER DEFAULT 40,
   pos_y       INTEGER DEFAULT 40,
   active      BOOLEAN DEFAULT TRUE,
@@ -985,12 +985,18 @@ CREATE TABLE IF NOT EXISTS food_court_table (
   updated_at  TIMESTAMP DEFAULT NOW()
 );
 
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP DEFAULT NOW(); 
+  
+
 -- Time slots master
 CREATE TABLE IF NOT EXISTS reservation_time_slots (
   id       SERIAL PRIMARY KEY,
   label    TEXT NOT NULL UNIQUE,   -- e.g. '10:00 AM - 12:00 PM'
   sort_idx INTEGER NOT NULL DEFAULT 0
 );
+
+ALTER TABLE reservation_time_slots
+  ADD COLUMN IF NOT EXISTS start_time TIME;
 
 -- Blackout header: either full day or some slots
 CREATE TABLE IF NOT EXISTS reservation_blackouts (
@@ -1002,11 +1008,69 @@ CREATE TABLE IF NOT EXISTS reservation_blackouts (
 
 -- Blacked-out slots for partial-day blackouts
 CREATE TABLE IF NOT EXISTS reservation_blackout_slots (
-  id           SERIAL PRIMARY KEY,
+  id           SERIAL PRIMARY KEY,  
   blackout_id  INTEGER NOT NULL REFERENCES reservation_blackouts(id) ON DELETE CASCADE,
   slot_id      INTEGER NOT NULL REFERENCES reservation_time_slots(id) ON DELETE CASCADE,
   CONSTRAINT reservation_blackout_slots_unique UNIQUE (blackout_id, slot_id)
 );
+
+-- === RESERVATIONS HEADER ===
+DROP TABLE IF EXISTS reservations CASCADE;
+
+CREATE TABLE reservations (
+  id               SERIAL PRIMARY KEY,
+  user_id          INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reserved_date    DATE NOT NULL,
+  slot_id          INTEGER NOT NULL REFERENCES reservation_time_slots(id) ON DELETE RESTRICT,
+  guests           INTEGER NOT NULL CHECK (guests > 0),
+  special_request  TEXT,
+  status           TEXT NOT NULL DEFAULT 'booked',
+  created_at       TIMESTAMPTZ DEFAULT now(),
+  updated_at       TIMESTAMPTZ DEFAULT now()
+);
+
+
+
+-- === BOOKED TABLES ===
+CREATE TABLE IF NOT EXISTS reservation_tables (
+  id               BIGSERIAL PRIMARY KEY,
+  reservation_id   INTEGER NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
+  table_id         INTEGER NOT NULL REFERENCES food_court_table(id) ON DELETE RESTRICT,
+  reserved_date    DATE    NOT NULL,
+  slot_id          INTEGER NOT NULL REFERENCES reservation_time_slots(id) ON DELETE RESTRICT
+);
+
+-- Prevent double-booking the same table for the same date/slot
+CREATE UNIQUE INDEX IF NOT EXISTS uq_reservation_tables_table_date_slot
+  ON reservation_tables(table_id, reserved_date, slot_id);
+
+  -- Add fields to support approval workflow
+ALTER TABLE reservations
+  ADD COLUMN IF NOT EXISTS reservation_fee NUMERIC(10,2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS cancelled_at   TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS refunded_at    TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS cancel_status  TEXT,               -- NULL | 'requested' | 'approved' | 'rejected'
+  ADD COLUMN IF NOT EXISTS cancel_requested_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS cancel_reason  TEXT,
+  ADD COLUMN IF NOT EXISTS cancel_decision_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS cancel_decision_by INTEGER REFERENCES users(id);
+
+-- Helpful indexes
+CREATE INDEX IF NOT EXISTS idx_reservations_cancel_status ON reservations(cancel_status);
+CREATE INDEX IF NOT EXISTS idx_reservations_status ON reservations(status);
+CREATE INDEX IF NOT EXISTS idx_reservations_date ON reservations(reserved_date);
+CREATE INDEX IF NOT EXISTS idx_res_time_slots_start ON reservation_time_slots(start_time);
+CREATE INDEX IF NOT EXISTS idx_reservations_date_slot ON reservations(reserved_date, slot_id);
+
+
+UPDATE reservation_time_slots SET start_time = TIME '10:00' WHERE label ILIKE '%10:00 AM%';
+UPDATE reservation_time_slots SET start_time = TIME '12:30' WHERE label ILIKE '%12:30 PM%';
+UPDATE reservation_time_slots SET start_time = TIME '15:00' WHERE label ILIKE '%3:00 PM%';
+UPDATE reservation_time_slots SET start_time = TIME '17:30' WHERE label ILIKE '%5:30 PM%';
+UPDATE reservation_time_slots SET start_time = TIME '18:00' WHERE label ILIKE '%6:00 PM%';
+
+
+  CREATE SEQUENCE IF NOT EXISTS reservation_seq START 1;
 
   /*RESERVATIONS CORE
    Depends on:
