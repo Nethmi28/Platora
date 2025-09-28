@@ -1205,3 +1205,33 @@ CREATE TABLE order_items (
   price NUMERIC(10,2) NOT NULL, -- store price at the time of order
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Messages
+CREATE TABLE messages (
+    id SERIAL PRIMARY KEY,
+    sender_id INT NOT NULL REFERENCES users(id),
+    receiver_id INT NOT NULL REFERENCES users(id),
+    order_id INT REFERENCES orders(id),
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX idx_messages_order ON messages(order_id);
+
+-- carts table
+CREATE TABLE carts (
+  id SERIAL PRIMARY KEY,
+  customer_id INTEGER REFERENCES customer_profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- cart_items table
+CREATE TABLE cart_items (
+  id SERIAL PRIMARY KEY,
+  cart_id INTEGER NOT NULL REFERENCES carts(id) ON DELETE CASCADE,
+  menu_item_id INTEGER NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+  quantity INTEGER NOT NULL CHECK (quantity > 0),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT cart_item_unique UNIQUE (cart_id, menu_item_id) -- ✅ correct uniqueness
+);
