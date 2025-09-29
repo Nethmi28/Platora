@@ -24,6 +24,8 @@ import adminAvailabilityRoutes from "./routes/adminAvailabilityRoutes.js";
 import walletRoutes from './routes/walletRoutes.js';
 import cron from 'node-cron';
 import * as WalletService from './services/walletService.js';
+import reservationRoutes from "./routes/reservationRoutes.js";
+import adminReservationsRoutes from "./routes/adminReservationRoutes.js";
 import recipeRoutes from './routes/recipeRoutes.js';
 import securutyAuditRoutes from './routes/securityAuditRoutes.js';
 
@@ -74,6 +76,8 @@ app.use("/api/food-court", foodCourtRoutes);
 app.use("/api/reservations/availability", availabilityRoutes);  // public
 app.use("/api/admin/availability", adminAvailabilityRoutes);    // admin
 
+
+
 app.use('/api/wallet', (req, res, next) => {
   console.log('=== WALLET ROUTE HIT ===');
   console.log('Method:', req.method);
@@ -86,6 +90,11 @@ app.use('/api/wallet', (req, res, next) => {
 
 app.use('/api/wallet', walletRoutes);
 app.use('/api/security-audit', securutyAuditRoutes);
+
+app.use("/api/reservations", reservationRoutes);
+
+app.use("/api/admin/reservations", adminReservationsRoutes);
+
 
 
 cron.schedule('0 * * * *', async () => {
