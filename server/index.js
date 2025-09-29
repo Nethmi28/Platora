@@ -36,8 +36,6 @@ import recipeRoutes from './routes/recipeRoutes.js';
 import restaurantProfileRoutes from './routes/restaurantProfileRoutes.js'; 
 import securutyAuditRoutes from './routes/securityAuditRoutes.js';
 
-import adminProfileRoutes from './routes/adminProfileRoutes.js';
-
 
 
 dotenv.config();
