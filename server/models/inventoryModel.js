@@ -62,6 +62,7 @@ async function adjustQuantity(id, restaurant_id, adjustment) {
   return pool.query(q, [adjustment, id, restaurant_id]);
 }
 
+
 // Deduct from inventory
 async function deductInventory(itemId, qty, client) {
   await client.query(
@@ -80,6 +81,7 @@ async function logInventoryAdjustment(itemId, qty, reason, client) {
     [itemId, qty, reason]
   );
 }
+
 
 export default {
   create,

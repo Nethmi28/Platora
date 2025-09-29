@@ -24,9 +24,17 @@ import adminAvailabilityRoutes from "./routes/adminAvailabilityRoutes.js";
 import walletRoutes from './routes/walletRoutes.js';
 import cron from 'node-cron';
 import * as WalletService from './services/walletService.js';
+
 import customerOrders from './routes/orderRoutes.js';
 import orderRoutes from "./routes/orderRoutes.js";
 import restaurantOrderRoutes from "./routes/restaurantOrderRoutes.js";
+
+import reservationRoutes from "./routes/reservationRoutes.js";
+import adminReservationsRoutes from "./routes/adminReservationRoutes.js";
+import recipeRoutes from './routes/recipeRoutes.js';
+import restaurantProfileRoutes from './routes/restaurantProfileRoutes.js'; 
+import securutyAuditRoutes from './routes/securityAuditRoutes.js';
+
 
 const app = express();
 const port = 3000;
@@ -52,6 +60,7 @@ configurePassport(passport);
 
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
+
 app.use('/api/auth', authRoutes);
 app.use('/customer/profile', customerProfileRoutes);
 app.use('/admin/profile', adminProfileRoutes);
@@ -64,6 +73,8 @@ app.use('/api/carts/count', cartCountRoutes);
 
 app.use('/restaurants/inventory', inventoryRoutes);
 app.use('/restaurants/menuItems', menuRoutes);
+app.use('/api/recipes', recipeRoutes);
+app.use('/api/restaurant/profile', restaurantProfileRoutes);
 
 app.use('/api/orders', orderRoutes);
 app.use('/api/restaurant-orders', restaurantOrderRoutes);
@@ -76,6 +87,8 @@ app.use("/api/food-court", foodCourtRoutes);
 app.use("/api/reservations/availability", availabilityRoutes);  // public
 app.use("/api/admin/availability", adminAvailabilityRoutes);    // admin
 
+
+
 app.use('/api/wallet', (req, res, next) => {
   console.log('=== WALLET ROUTE HIT ===');
   console.log('Method:', req.method);
@@ -87,6 +100,12 @@ app.use('/api/wallet', (req, res, next) => {
 });
 
 app.use('/api/wallet', walletRoutes);
+app.use('/api/security-audit', securutyAuditRoutes);
+
+app.use("/api/reservations", reservationRoutes);
+
+app.use("/api/admin/reservations", adminReservationsRoutes);
+
 
 
 cron.schedule('0 * * * *', async () => {
@@ -109,6 +128,8 @@ app.use((req, res) => {
     path: req.originalUrl
   });
 });
+
+
 
 
 
