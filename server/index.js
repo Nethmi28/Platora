@@ -27,6 +27,7 @@ import * as WalletService from './services/walletService.js';
 import reservationRoutes from "./routes/reservationRoutes.js";
 import adminReservationsRoutes from "./routes/adminReservationRoutes.js";
 import recipeRoutes from './routes/recipeRoutes.js';
+import restaurantProfileRoutes from './routes/restaurantProfileRoutes.js'; 
 import securutyAuditRoutes from './routes/securityAuditRoutes.js';
 
 const app = express();
@@ -53,6 +54,7 @@ configurePassport(passport);
 
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
+
 app.use('/api/auth', authRoutes);
 app.use('/customer/profile', customerProfileRoutes);
 app.use('/admin/profile', adminProfileRoutes);
@@ -66,6 +68,7 @@ app.use('/api/carts/count', cartCountRoutes);
 app.use('/restaurants/inventory', inventoryRoutes);
 app.use('/restaurants/menuItems', menuRoutes);
 app.use('/api/recipes', recipeRoutes);
+app.use('/api/restaurant/profile', restaurantProfileRoutes);
 
 
 app.use('/api/restaurant/kyc', kycRoutes);
@@ -117,6 +120,8 @@ app.use((req, res) => {
     path: req.originalUrl
   });
 });
+
+
 
 
 

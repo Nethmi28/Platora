@@ -31,6 +31,8 @@ const ReservationForm = lazy(() => import("../components/customerProfileComponen
 const AdminReservationList = lazy(() => import("../components/adminProfileComponents/AdminReservationList"));
 const Plate = lazy(() => import("../pages/Plate"));
 const CustomerOrders = lazy(() => import("../components/customerProfileComponents/CustomerOrders"))
+const RestaurantDetails = lazy(() => import("../components/restaurantProfileComponents/RestaurantDetails"))
+const AboutUs = lazy(() => import("../components/AboutUs"))
 const AdminPayoutDashboard = lazy(() => import("../components/adminProfileComponents/AdminPayoutDashboard"));
 const AdminAnalytictsDashboard = lazy(() => import("../components/adminProfileComponents/AdminAnalyticsDashboard"));
 const TransactionList = lazy(() => import("../components/adminProfileComponents/TransactionList"));
@@ -42,6 +44,11 @@ export const appRoutes = [
     component: LoginPage,
     requiresAuth: false,
     hideHeader: true
+  },
+  {
+    path: "/about",
+    component: AboutUs,
+    requiresAuth: false,
   },
    
   {
@@ -152,6 +159,10 @@ export const appRoutes = [
       {
         path: "menu",
         component: Menu, 
+      },
+       {
+        path: "details",
+        component: RestaurantDetails, 
       },
     ]
   },
