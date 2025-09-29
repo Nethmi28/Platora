@@ -17,6 +17,8 @@ const AdminProfile = lazy(() => import("../pages/AdminProfile"))
 const DeliveryAgentManagement = lazy(() => import("../components/adminProfileComponents/DeliverAgent"))
 const DeliveryAgentDashboard = lazy(() => import("../pages/DeliveryAgentDashboard"));
 const CustomerReservation = lazy(() => import("../components/customerProfileComponents/CustomerReservation"))
+const Chat = lazy(() => import("../pages/chat"));
+
 
 export const appRoutes = [
   {
@@ -112,5 +114,12 @@ export const appRoutes = [
       },
     ]
   },
+  {
+  path: "/chat",
+  component: Chat,
+  requiresAuth: false,   // or false if you want it open to anyone
+  allowedRoles: [], // adjust depending on who can chat
+},
+
 ]
 

@@ -4,15 +4,20 @@ import passport from 'passport';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import {configurePassport} from './config/passport.js';
+import { configurePassport } from './config/passport.js';
 import authRoutes from './routes/authRoutes.js';
 import customerProfileRoutes from './routes/customerProfileRoutes.js';
-import adminProfileRoutes from './routes/adminProfileRoutes.js'
+import adminProfileRoutes from './routes/adminProfileRoutes.js';
 
-const app = express();
-const port = 3000;
+
 
 dotenv.config();
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+
+
 
 app.use(cors({
   origin: 'http://localhost:5173', // React frontend
@@ -35,8 +40,12 @@ app.use('/api/auth', authRoutes);
 app.use('/customer/profile', customerProfileRoutes);
 app.use('/admin/profile', adminProfileRoutes);
 
+app.get('/test', (req, res) => {
+  res.json({ message: "Server is working!" });
+});
 
 app.listen(port, () => {
-    console.log(`Server running on port ${3000}`);
-})
+  console.log(`Server running on port ${port}`);
+});
+
 
