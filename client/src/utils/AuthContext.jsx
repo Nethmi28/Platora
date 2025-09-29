@@ -1,40 +1,63 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import axios from "axios";
+import { createContext, useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axiosInstance from "../utils/axiosInstance";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")) || null);
-  const [token, setToken] = useState(localStorage.getItem("token") || null);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      localStorage.setItem("token", token);
-    } else {
-      delete axios.defaults.headers.common["Authorization"];
-      localStorage.removeItem("token");
+  const fetchUser = async () => {
+    try {
+      const res = await axiosInstance.get("/api/auth/me");
+      setUser(res.data.user);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        setUser(null);
+      }
+    } finally {
+      setLoading(false);
     }
-  }, [token]);
+  };
 
   useEffect(() => {
-    if (user) localStorage.setItem("user", JSON.stringify(user));
-    else localStorage.removeItem("user");
-  }, [user]);
+    fetchUser();
 
-  const login = (userObj, tokenStr) => {
-    setUser(userObj);
-    setToken(tokenStr);
+    const interval = setInterval(() => {
+      fetchUser();
+    }, 5 * 60 * 1000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchUser();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  const logout = async () => {
+    try {
+      await axiosInstance.get("/api/auth/logout"); 
+      setUser(null);
+      navigate("/login", { replace: true });
+    } catch (err) {
+      console.error("Logout failed", err);
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-  };
-
-  return <AuthContext.Provider value={{ user, token, login, logout }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, setUser, logout, loading }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => useContext(AuthContext);
-
-

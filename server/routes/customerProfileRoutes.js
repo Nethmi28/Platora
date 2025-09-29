@@ -1,5 +1,6 @@
 import express from 'express';
 import { fetchCustomerProfile, updateCustomerProfile } from '../controllers/customerProfileController.js';
+import {fetchMessages, sendMessage} from '../controllers/chatController.js'
 import verifyJWT from '../middleware/verifyToken.js';
 import checkRole from '../middleware/requireRole.js';
 
