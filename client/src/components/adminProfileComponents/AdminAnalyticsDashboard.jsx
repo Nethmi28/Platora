@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { 
   BarChart,
   Bar,
@@ -17,7 +18,6 @@ import {
   Users,
   CreditCard,
   TrendingUp,
-  Download,
   Calendar,
   Filter,
   DollarSign,
@@ -28,8 +28,15 @@ import {
   AlertCircle,
   RefreshCw,
   BarChart3,
-  PieChart as PieChartIcon
+  CheckCircle
 } from 'lucide-react';
+
+// Configure axios defaults
+const api = axios.create({
+  baseURL: 'http://localhost:3000/api/wallet',
+  withCredentials: true,
+  timeout: 30000
+});
 
 const AnalyticsDashboard = () => {
   const [analytics, setAnalytics] = useState(null);
@@ -40,101 +47,153 @@ const AnalyticsDashboard = () => {
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
   });
-  const [exportType, setExportType] = useState('csv');
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [exporting, setExporting] = useState(false);
 
-  const apiRequest = async (url, options = {}) => {
-    try {
-      const response = await fetch(`http://localhost:3000/api/wallet${url}`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers
-        },
-        ...options
-      });
+  // Date validation function (same as TransactionList)
+  const validateAndSetDateRange = (field, value) => {
+    const newDateRange = { ...dateRange };
+    
+    if (field === 'startDate') {
+      newDateRange.startDate = value;
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // If end date is before the new start date, auto-correct end date
+      const startDate = new Date(value);
+      const endDate = new Date(newDateRange.endDate);
+      
+      if (endDate < startDate) {
+        newDateRange.endDate = value;
+        setSuccessMessage('End date automatically adjusted to match start date');
+        setTimeout(() => setSuccessMessage(''), 3000);
       }
+    } else if (field === 'endDate') {
+      // For end date, only allow if it's not before start date
+      const startDate = new Date(dateRange.startDate);
+      const selectedEndDate = new Date(value);
       
-      return await response.json();
-    } catch (error) {
-      console.error('API Request Error:', error);
-      throw error;
+      if (selectedEndDate < startDate) {
+        // Auto-correct: set end date to start date
+        newDateRange.endDate = dateRange.startDate;
+        setSuccessMessage('End date cannot be before start date. Adjusted to start date');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        newDateRange.endDate = value;
+      }
     }
+    
+    setDateRange(newDateRange);
   };
 
   const loadAnalytics = async () => {
     try {
-      const params = new URLSearchParams({
+      setLoading(true);
+      const params = {
         startDate: dateRange.startDate,
         endDate: dateRange.endDate
-      });
+      };
       
-      const [analyticsData, trendsData, customersData] = await Promise.all([
-        apiRequest(`/analytics/dashboard?${params}`),
-        apiRequest(`/analytics/trends?${params}`),
-        apiRequest(`/analytics/customers?${params}`)
-      ]);
-
-      setAnalytics(analyticsData.analytics);
-      setTrends(trendsData.trends || []);
-      setTopCustomers(customersData.customers || []);
+      console.log('Loading analytics with params:', params);
+      
+      // Try each endpoint individually with axios
+      let analyticsData = null;
+      let trendsData = null;
+      let customersData = null;
+      let hasErrors = false;
+      
+      try {
+        console.log('Fetching dashboard analytics...');
+        const response = await api.get('/analytics/dashboard', { params });
+        console.log('Dashboard response:', response.data);
+        analyticsData = response.data.analytics || response.data;
+      } catch (error) {
+        console.warn('Analytics dashboard endpoint error:', error.message);
+        hasErrors = true;
+        analyticsData = {
+          customers: { 
+            total_customers: 0, 
+            active_customers: 0, 
+            total_coins_in_circulation: 0, 
+            avg_balance_per_customer: 0, 
+            customers_with_transactions: 0 
+          },
+          transactions: [],
+          restaurants: [],
+          platformRevenue: []
+        };
+      }
+      
+      try {
+        console.log('Fetching trends...');
+        const response = await api.get('/analytics/trends', { params });
+        console.log('Trends response:', response.data);
+        trendsData = response.data.trends || response.data;
+      } catch (error) {
+        console.warn('Analytics trends endpoint error:', error.message);
+        hasErrors = true;
+        trendsData = [];
+      }
+      
+      try {
+        console.log('Fetching customers...');
+        const response = await api.get('/analytics/customers', { params });
+        console.log('Customers response:', response.data);
+        customersData = response.data.customers || response.data;
+      } catch (error) {
+        console.warn('Analytics customers endpoint error:', error.message);
+        hasErrors = true;
+        customersData = [];
+      }
+      
+      setAnalytics(analyticsData);
+      setTrends(trendsData);
+      setTopCustomers(customersData);
+      
+      if (hasErrors) {
+        setError('Some analytics data is temporarily unavailable. Please check console for details.');
+      } else {
+        setError(''); // Clear any previous errors
+      }
+      
     } catch (error) {
-      console.error('Error loading analytics:', error);
-      setError('Failed to load analytics data');
+      console.error('Critical error loading analytics:', error);
+      setError(`Analytics service is currently unavailable: ${error.message}`);
+      
+      // Set empty data on critical error
+      setAnalytics({
+        customers: { 
+          total_customers: 0, 
+          active_customers: 0, 
+          total_coins_in_circulation: 0, 
+          avg_balance_per_customer: 0, 
+          customers_with_transactions: 0 
+        },
+        transactions: [],
+        restaurants: [],
+        platformRevenue: []
+      });
+      setTrends([]);
+      setTopCustomers([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const exportData = async () => {
-    setExporting(true);
-    try {
-      const params = new URLSearchParams({
-        startDate: dateRange.startDate,
-        endDate: dateRange.endDate,
-        format: exportType
-      });
-      
-      const response = await fetch(`http://localhost:3000/api/wallet/analytics/export?${params}`, {
-        credentials: 'include'
-      });
-      
-      if (exportType === 'csv') {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `analytics-${dateRange.startDate}-to-${dateRange.endDate}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        setSuccessMessage('Analytics data exported successfully!');
-      } else {
-        const data = await response.json();
-        console.log('Export data:', data);
-        setSuccessMessage('Analytics data exported to console');
-      }
-    } catch (error) {
-      console.error('Error exporting data:', error);
-      setError('Failed to export analytics data');
-    } finally {
-      setExporting(false);
-    }
+  // Quick date range setter (same as TransactionList)
+  const setQuickDateRange = (days) => {
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
+    
+    const newRange = {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0]
+    };
+    
+    setDateRange(newRange);
   };
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      await loadAnalytics();
-      setLoading(false);
-    };
-    
-    loadData();
-  }, [dateRange.startDate, dateRange.endDate]);
+    loadAnalytics();
+  }, [dateRange]); // Reload when date range changes
 
   // Auto-clear messages
   useEffect(() => {
@@ -149,30 +208,30 @@ const AnalyticsDashboard = () => {
 
   // Process data for charts
   const processTransactionData = () => {
-    if (!analytics?.transactions) return [];
+    if (!analytics?.transactions || !Array.isArray(analytics.transactions)) return [];
     
     return analytics.transactions.map(t => ({
       type: t.transaction_type,
-      count: parseInt(t.transaction_count),
-      coins: parseInt(t.total_coins),
-      value: parseFloat(t.total_value_lkr)
+      count: parseInt(t.transaction_count) || 0,
+      coins: parseInt(t.total_coins) || 0,
+      value: parseFloat(t.total_value_lkr) || 0
     }));
   };
 
   const processTopRestaurants = () => {
-    if (!analytics?.restaurants) return [];
+    if (!analytics?.restaurants || !Array.isArray(analytics.restaurants)) return [];
     
     return analytics.restaurants.slice(0, 5).map(r => ({
-      name: r.name.length > 15 ? r.name.substring(0, 15) + '...' : r.name,
-      fullName: r.name,
-      earnings: parseInt(r.total_net_coins),
-      transactions: parseInt(r.transaction_count),
-      commission: parseInt(r.total_commission)
+      name: (r.name && r.name.length > 15) ? r.name.substring(0, 15) + '...' : (r.name || 'Unknown'),
+      fullName: r.name || 'Unknown',
+      earnings: parseInt(r.total_net_coins) || 0,
+      transactions: parseInt(r.transaction_count) || 0,
+      commission: parseInt(r.total_commission) || 0
     }));
   };
 
   const processTrendsData = () => {
-    if (!trends) return [];
+    if (!trends || !Array.isArray(trends)) return [];
     
     const dailyData = {};
     trends.forEach(trend => {
@@ -180,10 +239,27 @@ const AnalyticsDashboard = () => {
       if (!dailyData[date]) {
         dailyData[date] = { date, PURCHASE: 0, SPEND: 0, REFUND: 0 };
       }
-      dailyData[date][trend.transaction_type] = parseInt(trend.total_coins);
+      dailyData[date][trend.transaction_type] = parseInt(trend.total_coins) || 0;
     });
     
     return Object.values(dailyData).sort((a, b) => new Date(a.date) - new Date(b.date));
+  };
+
+  // Fixed coins circulation calculation
+  const calculateCoinsInCirculation = () => {
+    if (!analytics?.transactions || !Array.isArray(analytics.transactions)) return 0;
+    
+    let circulation = 0;
+    analytics.transactions.forEach(t => {
+      const coins = parseInt(t.total_coins) || 0;
+      if (t.transaction_type === 'PURCHASE' || t.transaction_type === 'REFUND') {
+        circulation += coins; // Add coins to circulation
+      } else if (t.transaction_type === 'SPEND') {
+        circulation -= coins; // Remove coins from circulation
+      }
+    });
+    
+    return Math.max(0, circulation); // Ensure non-negative
   };
 
   const COLORS = ['#10b981', '#059669', '#047857', '#065f46', '#064e3b'];
@@ -204,6 +280,7 @@ const AnalyticsDashboard = () => {
   const transactionData = processTransactionData();
   const restaurantData = processTopRestaurants();
   const trendsChartData = processTrendsData();
+  const coinsInCirculation = calculateCoinsInCirculation();
 
   const StatCard = ({ title, value, subtitle, icon: Icon, color = 'emerald', bgColor = 'emerald' }) => (
     <div className="rounded-xl p-6 border shadow-sm bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700 transition-all hover:shadow-md">
@@ -255,7 +332,7 @@ const AnalyticsDashboard = () => {
           {successMessage && (
             <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl p-4 mb-6">
               <div className="flex items-center">
-                <Download className="w-5 h-5 text-emerald-600 mr-2" />
+                <CheckCircle className="w-5 h-5 text-emerald-600 mr-2" />
                 <p className="text-emerald-700 dark:text-emerald-300">{successMessage}</p>
               </div>
             </div>
@@ -263,66 +340,104 @@ const AnalyticsDashboard = () => {
           
           <div className="border rounded-lg p-4 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-700/50">
             <p className="text-sm text-emerald-700 dark:text-emerald-300">
-              <strong>Analytics Overview:</strong> Track platform performance, user engagement, and revenue metrics across the ecosystem
+              <strong>Analytics Overview:</strong> Track platform performance, user engagement, and revenue metrics across the ecosystem. 
+              {error && <span className="block mt-1 text-orange-700 dark:text-orange-300">Note: Some analytics data may be limited due to server configuration.</span>}
             </p>
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8 bg-white dark:bg-gray-800">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={dateRange.startDate}
-                  onChange={(e) => setDateRange({...dateRange, startDate: e.target.value})}
-                  className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  value={dateRange.endDate}
-                  onChange={(e) => setDateRange({...dateRange, endDate: e.target.value})}
-                  className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
-                />
-              </div>
+        {/* Enhanced Filters with Date Validation */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+          <div className="flex items-center mb-4">
+            <Filter className="w-5 h-5 text-gray-500 mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Date Range Filters</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={dateRange.startDate}
+                max={dateRange.endDate}
+                onChange={(e) => validateAndSetDateRange('startDate', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-emerald-500 dark:bg-gray-700 dark:text-white"
+              />
             </div>
             
-            <div className="flex items-center gap-4 ml-auto">
-              <select
-                value={exportType}
-                onChange={(e) => setExportType(e.target.value)}
-                className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
-              >
-                <option value="csv">CSV Format</option>
-                <option value="json">JSON Format</option>
-              </select>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                End Date
+              </label>
+              <input
+                type="date"
+                value={dateRange.endDate}
+                min={dateRange.startDate}
+                onChange={(e) => validateAndSetDateRange('endDate', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-emerald-500 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+            
+            <div className="flex items-end">
               <button
-                onClick={exportData}
-                disabled={exporting}
-                className="flex items-center px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium rounded-lg transition-all disabled:opacity-50"
+                onClick={loadAnalytics}
+                className="w-full px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors"
               >
-                {exporting ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Exporting...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 mr-2" />
-                    Export Data
-                  </>
-                )}
+                Apply Filters
               </button>
             </div>
+          </div>
+
+          {/* Quick Date Range Buttons */}
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setQuickDateRange(7)}
+              className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+            >
+              Last 7 Days
+            </button>
+            <button
+              onClick={() => setQuickDateRange(30)}
+              className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+            >
+              Last 30 Days
+            </button>
+            <button
+              onClick={() => setQuickDateRange(90)}
+              className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+            >
+              Last 90 Days
+            </button>
+            <button
+              onClick={() => {
+                const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+                const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+                const newRange = {
+                  startDate: startOfMonth.toISOString().split('T')[0],
+                  endDate: endOfMonth.toISOString().split('T')[0]
+                };
+                setDateRange(newRange);
+              }}
+              className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+            >
+              This Month
+            </button>
+            <button
+              onClick={() => {
+                const lastMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+                const endOfLastMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 0);
+                const newRange = {
+                  startDate: lastMonth.toISOString().split('T')[0],
+                  endDate: endOfLastMonth.toISOString().split('T')[0]
+                };
+                setDateRange(newRange);
+              }}
+              className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+            >
+              Last Month
+            </button>
           </div>
         </div>
 
@@ -338,8 +453,8 @@ const AnalyticsDashboard = () => {
           />
           <StatCard
             title="Coins in Circulation"
-            value={parseInt(customers.total_coins_in_circulation || 0).toLocaleString()}
-            subtitle={`Avg: ${parseInt(customers.avg_balance_per_customer || 0)} per user`}
+            value={coinsInCirculation.toLocaleString()}
+            subtitle={`Avg: ${customers.total_customers > 0 ? Math.round(coinsInCirculation / customers.total_customers) : 0} per user`}
             icon={Coins}
             color="emerald"
             bgColor="emerald"
@@ -367,7 +482,7 @@ const AnalyticsDashboard = () => {
           {/* Transaction Types Chart */}
           <div className="rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-gray-800">
             <div className="flex items-center mb-6">
-              <PieChartIcon className="w-6 h-6 text-emerald-500 mr-3" />
+              <BarChart3 className="w-6 h-6 text-emerald-500 mr-3" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Transaction Types Distribution
               </h3>
@@ -392,7 +507,7 @@ const AnalyticsDashboard = () => {
             </ResponsiveContainer>
             {transactionData.length === 0 && (
               <div className="text-center py-8">
-                <PieChartIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-500 dark:text-gray-400">No transaction data available</p>
               </div>
             )}

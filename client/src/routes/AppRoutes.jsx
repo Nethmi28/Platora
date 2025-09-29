@@ -27,12 +27,16 @@ const Menu = lazy(() => import("../components/restaurantProfileComponents/Restau
 const AuditLogs = lazy(() => import("../components/adminProfileComponents/AdminAuditLogs"));
 const AdminFoodCourt = lazy(() => import("../components/adminProfileComponents/AdminFoodCourt"));
 const CustomerWallet = lazy(() => import("../components/customerProfileComponents/CustomerWalletDashboard"));
+const ReservationForm = lazy(() => import("../components/customerProfileComponents/ReservationForm"));
+const AdminReservationList = lazy(() => import("../components/adminProfileComponents/AdminReservationList"));
 const Plate = lazy(() => import("../pages/Plate"));
 const CustomerOrders = lazy(() => import("../components/customerProfileComponents/CustomerOrders"))
 const RestaurantDetails = lazy(() => import("../components/restaurantProfileComponents/RestaurantDetails"))
 const AboutUs = lazy(() => import("../components/AboutUs"))
-
-
+const AdminPayoutDashboard = lazy(() => import("../components/adminProfileComponents/AdminPayoutDashboard"));
+const AdminAnalytictsDashboard = lazy(() => import("../components/adminProfileComponents/AdminAnalyticsDashboard"));
+const TransactionList = lazy(() => import("../components/adminProfileComponents/TransactionList"));
+const SecurityAuditLogs = lazy(() => import("../components/adminProfileComponents/SecurityAuditLogs"));
 
 export const appRoutes = [
   {
@@ -189,8 +193,25 @@ export const appRoutes = [
         path: "reservations/food-court",
         component: AdminFoodCourt 
       },
-      
-
+      { path: "reservations/list", 
+        component: AdminReservationList 
+      },
+      {
+        path: "adminpayouts",
+        component: AdminPayoutDashboard
+      },
+      {
+        path: "walletAnalytics",
+        component: AdminAnalytictsDashboard
+      },
+      {
+        path: "transactions",
+        component: TransactionList
+      },
+      {
+        path: "logsSecurity-audit",
+        component: SecurityAuditLogs
+      },
     ]
   },
 
@@ -207,6 +228,14 @@ export const appRoutes = [
     requiresAuth: true,
     allowedRoles: ["customer"],
   },
+
+   {
+    path: "/reservation-form",
+    component: ReservationForm,
+    requiresAuth: true,
+    allowedRoles: ["customer"],
+  },
+
 
 ]
 
