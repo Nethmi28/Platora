@@ -2042,7 +2042,8 @@ export const getRestaurantEarnings = async (req, res) => {
 
     // Get restaurant profile ID from user
     const restaurantQuery = await pool.query(
-      "SELECT id, name FROM restaurant_profiles WHERE user_id = $1",
+      'SELECT id, restaurant_name FROM restaurant_profiles WHERE user_id = $1',
+
       [userId]
     );
 
