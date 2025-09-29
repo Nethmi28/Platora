@@ -234,6 +234,7 @@ export const getPinSecurityReport = async (req, res) => {
   }
 };
 
+console.log("SAYUNI");
 // Process refund
 export const processRefund = async (req, res) => {
   const client = await pool.connect();
