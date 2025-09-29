@@ -163,21 +163,24 @@ CREATE INDEX idx_kyc_audit_action ON kyc_audit_logs(action);
 CREATE INDEX idx_kyc_audit_created ON kyc_audit_logs(created_at);
 
 
---inventory_items table
+
 CREATE TABLE inventory_items (
     id SERIAL PRIMARY KEY,
+    restaurant_id integer not null references restaurant_profiles(id) on delete cascade,
     name VARCHAR(100) NOT NULL CHECK (name ~ '^[A-Za-z0-9 ]+$'), -- no !@#$, only alphanumeric + spaces
-    unit_id TEXT,
+    unit TEXT NOT NULL,
     quantity NUMERIC(12,2) NOT NULL DEFAULT 0,  -- allows fractional quantities (e.g., 0.5 kg)
     reorder_level NUMERIC(12,2) NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now()
 );
 
---inventory_adjustments table
+
 CREATE TABLE inventory_adjustments (
     id SERIAL PRIMARY KEY,
-    item_id INT NOT NULL REFERENCES inventory_items(id) ON DELETE CASCADE,
+    restaurant_id integer not null references restaurant_profiles(id) on delete cascade,
+    item_id INT REFERENCES inventory_items(id) ON DELETE SET NULL,
+    item_name VARCHAR(100),
     direction VARCHAR(10) NOT NULL CHECK (direction IN ('in','out')),
     quantity NUMERIC(12,2) NOT NULL CHECK (quantity > 0),
     reason TEXT,
@@ -1062,31 +1065,6 @@ CREATE TABLE IF NOT EXISTS reservation_tables (
   slot_id          INTEGER NOT NULL REFERENCES reservation_time_slots(id) ON DELETE RESTRICT
 );
 
--- Prevent double-booking the same table for the same date/slot
-CREATE UNIQUE INDEX IF NOT EXISTS uq_reservation_tables_table_date_slot
-  ON reservation_tables(table_id, reserved_date, slot_id);
-
-
-  ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP DEFAULT NOW(); 
-
-
-  -- Add fields to support approval workflow
-ALTER TABLE reservations
-  ADD COLUMN IF NOT EXISTS reservation_fee NUMERIC(10,2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS cancelled_at   TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS refunded_at    TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS cancel_status  TEXT,               -- NULL | 'requested' | 'approved' | 'rejected'
-  ADD COLUMN IF NOT EXISTS cancel_requested_at TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS cancel_reason  TEXT,
-  ADD COLUMN IF NOT EXISTS cancel_decision_at TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS cancel_decision_by INTEGER REFERENCES users(id);
-
--- Helpful indexes
-CREATE INDEX IF NOT EXISTS idx_reservations_cancel_status ON reservations(cancel_status);
-CREATE INDEX IF NOT EXISTS idx_reservations_status ON reservations(status);
-CREATE INDEX IF NOT EXISTS idx_reservations_date ON reservations(reserved_date);
-CREATE INDEX IF NOT EXISTS idx_res_time_slots_start ON reservation_time_slots(start_time);
-CREATE INDEX IF NOT EXISTS idx_reservations_date_slot ON reservations(reserved_date, slot_id);
 
 
 UPDATE reservation_time_slots SET start_time = TIME '10:00' WHERE label ILIKE '%10:00 AM%';
