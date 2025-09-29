@@ -433,7 +433,7 @@ export const bulkWalletOperation = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Bulk ${operation} completed successfully`,
+      message: Bulk ${operation} completed successfully,
       results,
       affectedCount: results.length,
     });
@@ -657,7 +657,7 @@ export const getWalletActivity = async (req, res) => {
       activity: {
         summary,
         recentTransactions: recentTransactions.transactions,
-        period: `${days} days`,
+        period: ${days} days,
       },
     });
   } catch (error) {
@@ -827,7 +827,7 @@ export const createPaymentIntent = async (req, res) => {
     if (!supportedCurrencies[currency]?.supported) {
       return res.status(400).json({
         success: false,
-        message: `Currency ${currency} is not supported for payments. Please use USD, EUR, GBP, AUD, or JPY.`,
+        message: Currency ${currency} is not supported for payments. Please use USD, EUR, GBP, AUD, or JPY.,
       });
     }
 
@@ -844,7 +844,7 @@ export const createPaymentIntent = async (req, res) => {
     if (!conversionResult.success) {
       return res.status(400).json({
         success: false,
-        message: `Failed to convert to ${currency}: ${conversionResult.message}`,
+        message: Failed to convert to ${currency}: ${conversionResult.message},
       });
     }
 
@@ -879,7 +879,7 @@ export const createPaymentIntent = async (req, res) => {
     await client.query("BEGIN");
 
     // Get user details for Stripe customer
-    const userQuery = `SELECT email, first_name, last_name FROM users WHERE id = $1`;
+    const userQuery = SELECT email, first_name, last_name FROM users WHERE id = $1;
     const userResult = await client.query(userQuery, [userId]);
 
     if (userResult.rows.length === 0) {
@@ -1171,7 +1171,7 @@ export const spendCoins = async (req, res) => {
       amountCoins: -coins,
       amountMoney: 0,
       currency: "LKR",
-      description: description || `Purchase - ${category}`,
+      description: description || Purchase - ${category},
       referenceId: orderId || reservationId,
       status: "COMPLETED",
       paymentMethod: "coins",
@@ -1281,7 +1281,7 @@ export const spendCoins = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Successfully spent ${coins} coins`,
+      message: Successfully spent ${coins} coins,
       transaction: {
         id: transaction.id,
         coins_spent: coins,
@@ -1370,7 +1370,7 @@ export const getTransactions = async (req, res) => {
     const result = await pool.query(query, params);
 
     // Total count query
-    let countQuery = `SELECT COUNT(*) as total FROM transactions t WHERE t.user_id = $1`;
+    let countQuery = SELECT COUNT(*) as total FROM transactions t WHERE t.user_id = $1;
     const countParams = [userId];
     let countIndex = 1;
 
@@ -1509,7 +1509,7 @@ export const addCoinsManually = async (req, res) => {
       amountMoney: 0,
       currency: "LKR",
       description: reason,
-      referenceId: `manual_${Date.now()}`,
+      referenceId: manual_${Date.now()},
       status: "COMPLETED",
       paymentMethod: "manual",
       metadata: {
@@ -1542,7 +1542,7 @@ export const addCoinsManually = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Successfully added ${coins} coins to user ${userId}`,
+      message: Successfully added ${coins} coins to user ${userId},
       transaction,
     });
   } catch (error) {
@@ -2042,8 +2042,7 @@ export const getRestaurantEarnings = async (req, res) => {
 
     // Get restaurant profile ID from user
     const restaurantQuery = await pool.query(
-      'SELECT id, restaurant_name FROM restaurant_profiles WHERE user_id = $1',
-
+      "SELECT id, name FROM restaurant_profiles WHERE user_id = $1",
       [userId]
     );
 
