@@ -91,6 +91,7 @@ app.use("/api/reservations/availability", availabilityRoutes);  // public
 app.use("/api/admin/availability", adminAvailabilityRoutes);    // admin
 
 app.use('/api/delivery', delivaryRoutes);
+app.use("/api/admin", adminReservationsRoutes);
 
 
 
