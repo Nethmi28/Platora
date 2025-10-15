@@ -14,7 +14,6 @@ export default function RestaurantOrders({ restaurantId }) {
         setLoading(true);
         const res = await axiosInstance.get(`/api/restaurant-orders/${restaurantId}`);
         console.log("API response:", res.data);
-        console.log("what is res????", res.data);
         if (!mounted) return;
         setOrders(res.data);
       } catch (err) {
@@ -61,7 +60,6 @@ export default function RestaurantOrders({ restaurantId }) {
   };
 
   const handleReject = async (id) => {
-    // Prompt for rejection reason
     const reason = window.prompt("Please provide a reason for rejection (required for customer notification):");
     if (!reason || reason.trim() === "") {
       alert("Rejection reason is required");
@@ -74,11 +72,7 @@ export default function RestaurantOrders({ restaurantId }) {
 
     try {
       setRefunding(id);
-      
-      // First, update order status to denied
       await axiosInstance.patch(`/api/restaurant-orders/${id}/status`, { status: 'denied' });
-      
-      // Then, process refund
       const refundRes = await axiosInstance.post('/api/refunds/order', {
         restaurantOrderId: id,
         reason: reason.trim()
@@ -100,24 +94,17 @@ export default function RestaurantOrders({ restaurantId }) {
       console.error(err);
       const errorMsg = err.response?.data?.message || "Failed to reject order and process refund";
       alert(`Error: ${errorMsg}`);
-      
-      // If refund failed, might want to revert order status
-      // But usually better to keep it denied and handle refund manually
     } finally {
       setRefunding(null);
     }
   };
 
   const handleNextStatus = async (id, type) => {
-    console.log("type:::", type);
-    console.log(orders)
-
     try {
       const order = orders.find(o => o.id === id);
       if (!order) return;
 
       const currentStatus = order.status?.toLowerCase();
-      console.log(currentStatus)
       const getNextStatus = (status, type) => {
         if (type === 'pickup') {
           switch (status) {
@@ -177,8 +164,6 @@ export default function RestaurantOrders({ restaurantId }) {
 
   if (loading) return <div className="p-6">Loading orders…</div>;
   if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
-
-  
 
   return (
     <div className="p-6">
@@ -241,58 +226,57 @@ export default function RestaurantOrders({ restaurantId }) {
                 </div>
               </div>
 
-            <div className="flex justify-between items-center border-t border-gray-200 bg-gray-50 px-6 py-3 dark:border-gray-700 dark:bg-gray-800">
-              <div>
-                {refunding === order.id ? (
-                  <span className="text-sm text-gray-600 dark:text-gray-400 italic">
-                    Processing refund...
-                  </span> 
-                 
-                ):(
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Ordered on: {formatDate(order.created_at || order.createdAt)}
+              <div className="flex justify-between items-center border-t border-gray-200 bg-gray-50 px-6 py-3 dark:border-gray-700 dark:bg-gray-800">
+                <div>
+                  {refunding === order.id ? (
+                    <span className="text-sm text-gray-600 dark:text-gray-400 italic">
+                      Processing refund...
+                    </span> 
+                  ) : (
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      Ordered on: {formatDate(order.created_at || order.createdAt)}
+                    </div>
+                  )}
                 </div>
-                )}
-              </div>
-              <div className="flex gap-2">
-                {lowerStatus === 'pending' && (
-                  <>
-                    <button 
-                      onClick={() => handleAccept(order.id)} 
-                      className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={refunding === order.id}
-                    >
-                      Accept Order
-                    </button>
-                    <button 
-                      onClick={() => handleReject(order.id)} 
-                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={refunding === order.id}
-                    >
-                      {refunding === order.id ? 'Processing Refund...' : 'Reject & Refund'}
-                    </button>
-                  </>
-                )}
+                <div className="flex gap-2">
+                  {lowerStatus === 'pending' && (
+                    <>
+                      <button 
+                        onClick={() => handleAccept(order.id)} 
+                        className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={refunding === order.id}
+                      >
+                        Accept Order
+                      </button>
+                      <button 
+                        onClick={() => handleReject(order.id)} 
+                        className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={refunding === order.id}
+                      >
+                        {refunding === order.id ? 'Processing Refund...' : 'Reject & Refund'}
+                      </button>
+                    </>
+                  )}
 
-                {showActionButton && lowerStatus !== 'pending' &&(
-                  <button 
-                    onClick={() => handleNextStatus(order.id, order.type)} 
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-                  >
-                    Mark as {getNextLabel(lowerStatus, order.type)}
-                  </button>
-                )}
+                  {showActionButton && lowerStatus !== 'pending' && (
+                    <button 
+                      onClick={() => handleNextStatus(order.id, order.type)} 
+                      className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
+                    >
+                      Mark as {getNextLabel(lowerStatus, order.type)}
+                    </button>
+                  )}
 
-                {order.status === 'denied' && (
-                  <span className="text-sm text-gray-500 dark:text-gray-400 italic">
-                    Order rejected - Customer refunded
-                  </span>
-                )}
-                )}
+                  {order.status === 'denied' && (
+                    <span className="text-sm text-gray-500 dark:text-gray-400 italic">
+                      Order rejected - Customer refunded
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {orders.length === 0 && (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
