@@ -1053,6 +1053,7 @@ CREATE TABLE reservations (
   updated_at       TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE reservations ADD COLUMN stored_tables JSONB;
 
 -- === BOOKED TABLES ===
 CREATE TABLE IF NOT EXISTS reservation_tables (
@@ -1150,4 +1151,11 @@ CREATE TABLE order_delivery_details (
   delivery_address TEXT NOT NULL,
   contact_number VARCHAR(15) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE password_reset_tokens (
+  id SERIAL PRIMARY KEY,
+  user_id INT REFERENCES users(id) ON DELETE CASCADE,
+  token VARCHAR(255) NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  used BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
