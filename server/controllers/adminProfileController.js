@@ -154,16 +154,14 @@ export async function exportUserReport(req, res) {
         currentY += 20;
       }
 
-      currentY += 30;
+      currentY += 20;
     }
-
-    // === Footer ===
-    doc.moveTo(leftMargin, pageHeight - 50).lineTo(rightMargin, pageHeight - 50).strokeColor("#9ca3af").stroke();
-    doc.fontSize(9).fillColor(textLight).text("Generated automatically by the Food Court Management System", leftMargin, pageHeight - 40);
 
     doc.end();
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to export user report", error: err.message });
   }
+
+
 }
