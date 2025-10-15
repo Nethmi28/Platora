@@ -36,6 +36,8 @@ import restaurantProfileRoutes from './routes/restaurantProfileRoutes.js';
 import securutyAuditRoutes from './routes/securityAuditRoutes.js';
 import refundRoutes from './routes/refundRoutes.js';
 
+import delivaryRoutes from './routes/deliveryRoutes.js';
+
 
 const app = express();
 const port = 3000;
@@ -87,7 +89,10 @@ app.use("/api/food-court", foodCourtRoutes);
 
 app.use("/api/reservations/availability", availabilityRoutes);  // public
 app.use("/api/admin/availability", adminAvailabilityRoutes);    // admin
+
+app.use('/api/delivery', delivaryRoutes);
 app.use("/api/admin", adminReservationsRoutes);
+
 
 
 app.use('/api/wallet', (req, res, next) => {
