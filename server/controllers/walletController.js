@@ -1047,7 +1047,7 @@ export const spendCoins = async (req, res) => {
         orderId,
         reservationId,
         menu_item_id,
-        category = "Food Orders",
+        category = "Food Orders" || "Reservation" || "Other",
         requirePin = coins > 100 ? true : false,
       } = req.body;
 
@@ -1121,12 +1121,12 @@ export const spendCoins = async (req, res) => {
       amountMoney: 0,
       currency: 'LKR',
       description: description || `Purchase - ${category}`,
-      referenceId: orderId || reservationId,
+      referenceId: menu_item_id || reservationId,
       status: 'COMPLETED',
       paymentMethod: 'coins',
       metadata: {
         category,
-        order_id: orderId,
+        menu_item_id: menu_item_id,
         reservation_id: reservationId,
         restaurant_id: restaurantId,
         commission_coins: commissionCoins,
