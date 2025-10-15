@@ -188,10 +188,6 @@ export const appRoutes = [
     allowedRoles: ["admin"],
     children: [
       {
-        path: "",
-        component: AdminDashboard,
-      },
-      {
         path: "deliveryagentmanage",
         component: DeliveryAgentManagement,
       },

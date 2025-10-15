@@ -10,7 +10,6 @@ function DeliveryAgentManagement() {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState(null);
-
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");

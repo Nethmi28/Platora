@@ -1,6 +1,5 @@
 import express from 'express';
 import { fetchDeliveryAgents, exportUserReport } from '../controllers/adminProfileController.js';
-import {  } from "../controllers/adminProfileController.js";
 import verifyJWT from '../middleware/verifyToken.js';
 import checkRole from '../middleware/requireRole.js';
 
