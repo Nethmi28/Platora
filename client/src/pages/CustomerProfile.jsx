@@ -25,11 +25,11 @@ const CustomerProfile = () => {
               className="fixed inset-0 bg-black opacity-50" 
               onClick={() => setIsMobileMenuOpen(false)}
             ></div>
-            <div className="relative w-64 bg-white dark:bg-gray-800 shadow-lg h-full">
+            <div className="relative w-64 bg-white dark:bg-gray-400 shadow-lg h-full">
               <div className="absolute top-4 right-4">
                 <button 
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  className="p-2 bg-gray-100 dark:bg-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
                   <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
